@@ -1,5 +1,4 @@
-# kanzo's minqlx-plugins
-[![Code Health](https://landscape.io/github/cstewart90/minqlx-plugins/master/landscape.svg?style=flat)](https://landscape.io/github/cstewart90/minqlx-plugins/master)
+# kanzo's minqlx-plugins [![Code Health](https://landscape.io/github/cstewart90/minqlx-plugins/master/landscape.svg?style=flat)](https://landscape.io/github/cstewart90/minqlx-plugins/master)
 
 This is my plugins I have developed for [minqlx](https://github.com/MinoMino/minqlx).
 If you're looking for the QLRace plugins they are [here](https://github.com/QLRace/minqlx-plugins).
