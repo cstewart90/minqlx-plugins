@@ -22,4 +22,4 @@ class removepowerups(minqlx.Plugin):
     def handle_round_end(self, data):
         """Removes all powerups on round end."""
         for p in self.players():
-            p.powerups(reset=True)
+            p.powerups(quad=0, battlesuit=0, regeneration=0, haste=0, invisibility=0, invulnerability=0)
