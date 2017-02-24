@@ -91,7 +91,7 @@ class servers(minqlx.Plugin):
             address[1] = int(address[1])
             server = a2s.ServerQuerier(address, 1)  # 1 second timeout
             info = server.get_info()
-            return info['server_name'], [info["player_count"], info["max_players"]]
+            return info['server_name'], [info["player_count"]-info["bot_count"], info["max_players"]]
         except ValueError:
             return "Error: Invalid port", []
         except socket.gaierror:
