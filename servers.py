@@ -8,8 +8,7 @@
 
 """
 Adds !servers command which shows status of servers.
-This plugin depends on python-valve which you can install with
-sudo python3.5 -m pip install python-valve
+This plugin uses a2s api I made at a2s.c16t.uk/info
 
 !servers - Show status of servers.
 
@@ -20,15 +19,7 @@ qlx_serversShowInChat "0" - Whether to output to chat. If it is 0 it only tells 
 
 import minqlx
 import time
-import socket
-
-try:
-    import valve.source.a2s as a2s
-except ImportError:
-    minqlx.CHAT_CHANNEL.reply("^1Error: ^7The ^4python-valve ^7python library isn't installed.")
-    minqlx.CHAT_CHANNEL.reply(
-        "Run the following on your server to install: ^3sudo python3.5 -m pip install python-valve")
-    raise ImportError
+import requests
 
 
 class servers(minqlx.Plugin):
@@ -37,67 +28,69 @@ class servers(minqlx.Plugin):
         self.add_command("servers", self.cmd_servers)
 
         # Example value "108.61.190.53:27960, 108.61.190.53:27961, il.qlrace.com:27960"
-        self.set_cvar_once("qlx_servers", "")
         self.set_cvar_once("qlx_serversShowInChat", "0")
 
-    def cmd_servers(self, player, msg, channel):
+    def cmd_servers(self, player, _msg, channel):
         """If `qlx_servers` is set then it outputs status of servers.
         Outputs to chat if `qlx_serversShowInChat` is 1, otherwise it will
         output to the player who called the command only."""
-        servers = self.get_cvar("qlx_servers", list)
-        if len(servers) == 1 and servers[0] == "":
+        servers_list = self.get_cvar("qlx_servers", list)
+        if len(servers_list) == 1 and servers_list[0] == "":
             self.logger.warning("qlx_servers is not set")
             player.tell("qlx_servers is not set")
             return minqlx.RET_STOP_ALL
-        elif any(s == '' for s in servers):
+        elif any(s == '' for s in servers_list):
             self.logger.warning("qlx_servers has an invalid server(empty string). Most likely due to trailing comma.")
             player.tell("qlx_servers has an invalid server(empty string). Most likely due to trailing comma.")
             return minqlx.RET_STOP_ALL
 
         irc = isinstance(player, minqlx.AbstractDummyPlayer)
         if not self.get_cvar("qlx_serversShowInChat", bool) and not irc:
-            self.get_servers(servers, minqlx.TellChannel(player))
+            self.get_servers(servers_list, minqlx.TellChannel(player))
             return minqlx.RET_STOP_ALL
 
-        self.get_servers(servers, channel, irc=irc)
+        self.get_servers(servers_list, channel, irc=irc)
 
     @minqlx.thread
-    def get_servers(self, servers, channel, irc=False):
+    def get_servers(self, servers_list, channel, irc=False):
         """Gets and outputs info for all servers in `qlx_servers`."""
-        output = ["^5{:^22} | {:^62} | {}".format("IP", "sv_hostname", "Players")]
-        for server in servers:
-            hostname, players = self.get_server_info(server)
-            if players:
-                if players[0] >= players[1]:
-                    players = "^3{}/{}".format(players[0], players[1])
-                else:
-                    players = "^2{}/{}".format(players[0], players[1])
-            else:
-                players = "^1..."
+        info = self.get_server_info(servers_list)
+        if info["error"]:
+            channel.reply("Error: {}".format(info["error"]))
+            return
 
-            output.append("{:22} | {:62} | {}".format(server, hostname, players))
+        output = ["^3{:^20} | {:^37} | {:^22}  | {}".format("IP", "Server Name", "Map", "Players")]
+
+        for server in info["servers"]:
+            if server["max_players"] == 0:
+                players = "^1..."
+            elif server["players"] >= server["max_players"]:
+                players = "^3{players}/{max_players}".format(**server)
+            else:
+                players = "^2{players}/{max_players}".format(**server)
+
+            if server["error"]:
+                server["name"] = "^1Error when trying to query^7"
+            else:
+                server["name"] = server["name"][:36]
+
+            output.append("^7{:20} | {:37} | {:23} | {}".format(
+                server["server"], server["name"], server["map"], players))
 
         if irc:
             reply_large_output(channel, output, max_amount=1, delay=2)
         else:
             reply_large_output(channel, output)
 
-    @staticmethod
-    def get_server_info(server):
-        """Gets server info using python-valve."""
-        # set port to 27960 if no port
-        address = (server.split(":") + [27960])[:2]
+    def get_server_info(self, servers_list):
+        """Gets server info for all servers using a2s.c16t.uk/info"""
+        query = {"servers": ",".join(servers_list)}
         try:
-            address[1] = int(address[1])
-            server = a2s.ServerQuerier(address, 1)  # 1 second timeout
-            info = server.info()
-            return info['server_name'], [info["player_count"], info["max_players"]]
-        except ValueError:
-            return "Error: Invalid port", []
-        except socket.gaierror:
-            return "Error: Invalid/nonexistent address", []
-        except a2s.NoResponseError:
-            return "Error: Timed out", []
+            r = requests.get("https://a2s.c16t.uk/info", params=query)
+            return r.json()
+        except requests.exceptions.RequestException as e:
+            self.logger.error(e)
+            return {"error": e, "servers": []}
 
 
 def reply_large_output(channel, output, max_amount=26, delay=0.4):
