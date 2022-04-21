@@ -95,8 +95,9 @@ class servers(minqlx.Plugin):
             return {"error": e, "servers": []}
 
 
-def reply_large_output(channel, output, max_amount=26, delay=0.4):
-    """Replies with large output in small portions, as not to disconnected the player.
+def reply_large_output(channel, output, max_amount=16, delay=0.5):
+    """Replies with large output in small portions, so there
+    is no server/client lag when outputing lots of lines of text.
     :param channel: Channel to reply to.
     :param output: Output to send to channel.
     :param max_amount: Max amount of lines to send at once.
