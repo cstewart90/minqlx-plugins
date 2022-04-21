@@ -70,7 +70,7 @@ class servers(minqlx.Plugin):
                 players = "^2{players}/{max_players}".format(**server)
 
             if server["error"]:
-                server["name"] = "Error when trying to query^7"
+                server["name"] = "Error when trying to query"
                 colour = "^1"
             else:
                 server["name"] = server["name"][:36]
