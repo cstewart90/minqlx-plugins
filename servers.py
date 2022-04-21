@@ -59,7 +59,7 @@ class servers(minqlx.Plugin):
             channel.reply("Error: {}".format(info["error"]))
             return
 
-        output = ["^3{:^20} | {:^37} | {:^22}  | {}".format("IP", "Server Name", "Map", "Players")]
+        output = ["^3{:^21} | {:^37} | {:^22}  | {}".format("IP", "Server Name", "Map", "Players")]
 
         for server in info["servers"]:
             if server["max_players"] == 0:
@@ -70,12 +70,14 @@ class servers(minqlx.Plugin):
                 players = "^2{players}/{max_players}".format(**server)
 
             if server["error"]:
-                server["name"] = "^1Error when trying to query^7"
+                server["name"] = "Error when trying to query^7"
+                colour = "^1"
             else:
                 server["name"] = server["name"][:36]
+                colour = ""
 
-            output.append("^7{:20} | {:37} | {:23} | {}".format(
-                server["server"], server["name"], server["map"], players))
+            output.append("{}{:21} | {:37} | {:23} | {}".format(
+                colour, server["server"], server["name"], server["map"], players))
 
         if irc:
             reply_large_output(channel, output, max_amount=1, delay=2)
