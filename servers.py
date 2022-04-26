@@ -27,13 +27,25 @@ class servers(minqlx.Plugin):
         super().__init__()
         self.add_command("servers", self.cmd_servers)
 
-        # Example value "108.61.190.53:27960, 108.61.190.53:27961, il.qlrace.com:27960"
+        # Example qlx_servers: "108.61.190.53:27960, 108.61.190.53:27961, il.qlrace.com:27960"
+        # Port is necessary
+        self.set_cvar_once("qlx_servers", "")
         self.set_cvar_once("qlx_serversShowInChat", "0")
+
+        self.last_time = None
+        self.cooldown = 10  # !server command cooldown in seconds
 
     def cmd_servers(self, player, _msg, channel):
         """If `qlx_servers` is set then it outputs status of servers.
         Outputs to chat if `qlx_serversShowInChat` is 1, otherwise it will
         output to the player who called the command only."""
+        if self.get_cvar("qlx_serversShowInChat", bool) and self.last_time is not None:
+            cooldown_end = self.last_time + self.cooldown
+            if time.time() < cooldown_end:
+                secs_left = cooldown_end - time.time()
+                player.tell("^3!server is on cooldown for another {:.1f} seconds".format(secs_left))
+                return minqlx.RET_STOP_ALL
+
         servers_list = self.get_cvar("qlx_servers", list)
         if len(servers_list) == 1 and servers_list[0] == "":
             self.logger.warning("qlx_servers is not set")
@@ -49,6 +61,7 @@ class servers(minqlx.Plugin):
             self.get_servers(servers_list, minqlx.TellChannel(player))
             return minqlx.RET_STOP_ALL
 
+        self.last_time = time.time()
         self.get_servers(servers_list, channel, irc=irc)
 
     @minqlx.thread
